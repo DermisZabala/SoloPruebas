@@ -13,11 +13,5 @@
         "runtime": "python3.12"
       }
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "mi_cuevana/wsgi.py"
-    }
   ]
 }
