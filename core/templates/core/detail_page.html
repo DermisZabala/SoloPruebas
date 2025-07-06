@@ -1,0 +1,173 @@
+<!-- Archivo: core/templates/core/detail_page.html (COMPLETO Y FINAL) -->
+{% extends 'core/_base.html' %}
+{% load static %}
+{% load seo_tags %}
+
+{% block content %}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "{% if is_movie %}Movie{% else %}TVSeries{% endif %}",
+  "name": "{{ content.title }}",
+  "description": "{{ content.overview }}",
+  "image": "{% if 'http' in content.poster_path %}{{ content.poster_path }}{% else %}https://image.tmdb.org/t/p/w500{{ content.poster_path }}{% endif %}",
+  {% if content.rating != "0.0" and content.rating != "N/A" %}
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "{{ content.rating }}",
+    "bestRating": "10",
+    "ratingCount": "1"
+  },
+  {% endif %}
+  {% if content.release_date %}
+  "datePublished": "{{ content.release_date }}"
+  {% endif %}
+}
+</script>
+
+{% if content.backdrop_path and 'http' in content.backdrop_path %}
+    <div class="backdrop" style="background-image: url('{{ content.backdrop_path }}');"></div>
+{% else %}
+    <div class="backdrop" style="background-image: url('https://image.tmdb.org/t/p/original{{ content.backdrop_path }}');"></div>
+{% endif %}
+
+
+<div class="detail-container">
+
+    <!-- SECCIÓN DE INFO GENERAL -->
+    <div class="detail-header">
+            <div class="poster-wrapper">
+                {% if content.poster_path and 'http' in content.poster_path %}
+                    <img src="{{ content.poster_path }}" alt="{{ content.title }} Poster">
+                {% else %}
+                    <img src="https://image.tmdb.org/t/p/w500{{ content.poster_path }}" alt="{{ content.title }} Poster">
+                {% endif %}
+            </div>
+            <div class="header-info">
+                <a href="{% url 'home' %}">← Volver al catálogo</a>
+                <h1 class="detail-title">{{ content.title }}</h1>
+
+                <div class="cast-list">
+                    {% if content.release_date %}
+                        <span class="meta-item"><strong>Año:</strong> {{ content.release_date|slice:":4" }}</span>
+                    {% endif %}
+                </div>
+                <div class="cast-list">
+                    {% if content.rating != "0.0" and content.rating != "N/A" %}
+                        <span class="meta-item"><strong>Puntuación:</strong> {{ content.rating }}/10</span>
+                    {% endif %}
+                </div>
+                
+                {% if content.genres %}
+                    <p class="genres-list"><strong>Géneros:</strong> {{ content.genres|join:", " }}</p>
+                {% endif %}
+                {% if content.cast %}
+                    <p class="cast-list"><strong>Reparto:</strong> {{ content.cast|join:", " }}</p>
+                {% endif %}
+                <p class="detail-overview"><strong>Sinopsis:</strong> {{ content.overview }}</p>
+
+                {% generate_keyword_paragraph title=content.title content_type=content.type %}
+            </div>
+    </div>
+
+
+    <!-- SECCIÓN DEL REPRODUCTOR Y OPCIONES -->
+    <div class="player-and-options">
+
+        {% if not is_movie %} {# --- SECCIÓN PARA SERIES (SIN CAMBIOS) --- #}
+            <div class="series-episodes-list">
+                <h2 id="temporadas">Temporadas y Episodios</h2>
+                <div class="seasons-container">
+                    {% for season in content.seasons %}
+                        <button class="source-button season-button" data-season="{{ season.season_number }}">
+                            {% if season.display_title %}
+                                {{ season.display_title }}
+                            {% else %}
+                                Temporada {{ season.season_number }}
+                            {% endif %}
+                        </button>
+                    {% endfor %}
+                </div>
+                
+                <div class="episodes-container">
+                    {% for season in content.seasons %}
+                    <ul class="episodes-list" data-season="{{ season.season_number }}">
+                        {% for episode in season.episodes %}
+                            <li class="episode-item">
+                                {% if content.type == 'Anime' %}
+                                    <a href="{% url 'anime_episode_player' content_id=content.id season_number=season.season_number episode_number=episode.episode_number %}">
+                                {% else %}
+                                    <a href="{% url 'series_episode_player' content_id=content.id season_number=season.season_number episode_number=episode.episode_number %}">
+                                {% endif %}
+                                    <span class="episode-number">{{ episode.episode_number }}.</span>
+                                    <span class="episode-title-text">{{ episode.title }}</span>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% endfor %}
+                </div>
+            </div>
+
+        {% else %} {# --- SECCIÓN PARA PELÍCULAS (CON LA ESTRUCTURA CORREGIDA) --- #}
+            <div class="player-wrapper">
+                
+                <!-- === OPCIONES DE VIDEO (MOVIDAS ARRIBA) === -->
+                <!-- Mantenemos la clase .movie-sources para que main.js funcione -->
+               <div class="{% if is_movie %}movie-sources{% else %}episode-sources{% endif %}">
+                    {% for lang, sources in sources_by_lang %}
+                        <div class="source-group">
+                            <details class="dropdown-menu">
+                                <summary class="dropdown-summary">
+                                    <span>{{ lang }}</span>
+                                    <span class="arrow-container">
+                                        <img src="{% static 'core/img/flecha-baja.png' %}" alt="Abrir" class="flecha-baja">
+                                        <img src="{% static 'core/img/flecha-arriba.png' %}" alt="Cerrar" class="flecha-arriba">
+                                    </span>
+                                </summary>
+                                <div class="source-buttons">
+                                    {% for source in sources %}
+                                        <button class="source-button" 
+                                                data-server-name="{{ source.server_name }}"
+                                                data-source-id="{% if 'streamwish' in source.embed_url %}{{ source.embed_url|cut:'https://streamwish.to/e/'|cut:'/' }}{% elif 'filemoon' in source.embed_url %}{{ source.embed_url|cut:'https://filemoon.sx/e/'|cut:'/' }}{% elif 'vidhidepro' in source.embed_url or 'filelions' in source.embed_url %}{{ source.embed_url|cut:'https://filelions.to/v/'|cut:'/' }}{% elif 'voe.sx' in source.embed_url %}{{ source.embed_url|cut:'https://voe.sx/e/'|cut:'/' }}{% else %}ERROR_PARSING_ID{% endif %}">
+                                            {{ source.server_name }}
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                        </div>
+                    {% empty %}
+                        <p>No se encontraron fuentes de video.</p>
+                    {% endfor %}
+                </div>
+                <!-- ============================================= -->
+
+                <div class="player-container">
+                    <video id="player" playsinline controls style="display: none;"></video>
+                    <div id="player-message-overlay" style="display: flex;">
+                        <span id="player-message-text">Selecciona una fuente</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Barra lateral que ahora solo contiene el anuncio -->
+            <div class="options-wrapper">
+                <div class="ad-container ad-sidebar">
+                     <script type="text/javascript">
+                        atOptions = {
+                            'key' : 'd92ae6be03a5314e3a7494b6a3f72f8e',
+                            'format' : 'iframe',
+                            'height' : 250,
+                            'width' : 300,
+                            'params' : {}
+                        };
+                    </script>
+                    <script type="text/javascript" src="//www.highperformanceformat.com/d92ae6be03a5314e3a7494b6a3f72f8e/invoke.js"></script>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

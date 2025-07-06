@@ -1,0 +1,18 @@
+# Archivos de Python
+__pycache__/
+*.pyc
+
+# Archivo de base de datos local
+db.sqlite3
+
+
+# Entorno virtual
+venv/
+env/
+.env
+
+# Archivos de sistema
+.DS_Store
+
+# Archivos de Vercel
+.vercel/

@@ -1,0 +1,11 @@
+# Archivo: requirements.in (NUEVO)
+# Dependencias directas del proyecto.
+# Ejecuta "pip-compile" para generar el archivo requirements.txt
+
+django
+gunicorn         # Servidor WSGI recomendado para producción
+whitenoise       # Para servir archivos estáticos en producción
+python-dotenv    # Para cargar variables de entorno desde .env en local
+requests         # Para hacer peticiones HTTP en data_manager.py
+cloudscraper     # Para scraping, evita bloqueos de Cloudflare
+beautifulsoup4   # Para parsear HTML

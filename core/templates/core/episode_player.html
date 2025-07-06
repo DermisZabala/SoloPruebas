@@ -1,0 +1,132 @@
+<!-- Archivo: core/templates/core/episode_player.html (NUEVO) -->
+{% extends 'core/_base.html' %}
+{% load static %}
+{% load seo_tags %}
+
+{% block content %}
+{% generate_keyword_paragraph title=content.title content_type=content.type %}
+{% if 'http' in series.backdrop_path %}
+    <div class="backdrop" style="background-image: url('{{ series.backdrop_path }}');"></div>
+{% else %}
+    <div class="backdrop" style="background-image: url('https://image.tmdb.org/t/p/original{{ series.backdrop_path }}');"></div>
+{% endif %}
+
+<div class="detail-container">
+    <div class="detail-header">
+        <div class="poster-wrapper">
+            <img src="{% if 'http' in series.poster_path %}{{ series.poster_path }}{% else %}https://image.tmdb.org/t/p/w500{{ series.poster_path }}{% endif %}" alt="{{ series.title }} Poster">
+        </div>
+        <div class="header-info">
+            <h1 class="detail-title">{{ series.title }}</h1>
+            <h2 class="episode-title">T{{ season_number }} E{{ episode_number }}: {{ episode.title }}</h2>
+            <div class="detail-overview">
+                {% if series.release_date %}
+                    <span class="detail-overview"><strong>Año:</strong> {{ series.release_date|slice:":4" }}</span>
+                {% endif %}               
+            </div>
+            <div class="detail-overview">
+                {% if series.rating != "0.0" and series.rating != "N/A" %}
+                    <span ><strong>Puntuación:</strong> {{ series.rating }}/10</span>
+                {% endif %}                              
+            </div>
+             
+            {% if episode.overview %}
+                <p class="detail-overview"><strong>Sinopsis del Episodio:</strong> {{ episode.overview }}</p>
+            {% endif %}
+
+            {% generate_keyword_paragraph title=content.title content_type=content.type %}
+        </div>
+    </div>
+
+
+    
+    
+    <!-- REPRODUCTOR Y OPCIONES -->
+    <div class="player-and-options">
+        <div class="player-wrapper">
+            <div class="{% if is_movie %}movie-sources{% else %}episode-sources{% endif %}">
+                {% for lang, sources in sources_by_lang %}
+                    <div class="source-group">
+                        <details class="dropdown-menu">
+                            <summary class="dropdown-summary">
+                                <span>{{ lang }}</span>
+                                <span class="arrow-container">
+                                    <img src="{% static 'core/img/flecha-baja.png' %}" alt="Abrir" class="flecha-baja">
+                                    <img src="{% static 'core/img/flecha-arriba.png' %}" alt="Cerrar" class="flecha-arriba">
+                                </span>
+                            </summary>
+                            <div class="source-buttons">
+                                {% for source in sources %}
+                                    <button class="source-button" 
+                                            data-server-name="{{ source.server_name }}"
+                                            data-source-id="{% if 'streamwish' in source.embed_url %}{{ source.embed_url|cut:'https://streamwish.to/e/'|cut:'/' }}{% elif 'filemoon' in source.embed_url %}{{ source.embed_url|cut:'https://filemoon.sx/e/'|cut:'/' }}{% elif 'vidhidepro' in source.embed_url or 'filelions' in source.embed_url %}{{ source.embed_url|cut:'https://filelions.to/v/'|cut:'/' }}{% elif 'voe.sx' in source.embed_url %}{{ source.embed_url|cut:'https://voe.sx/e/'|cut:'/' }}{% else %}ERROR_PARSING_ID{% endif %}">
+                                        {{ source.server_name }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    </div>
+                {% empty %}
+                    <p>No se encontraron fuentes de video.</p>
+                {% endfor %}
+            </div>
+            <div class="player-container">
+                <video id="player" playsinline controls style="display: none;"></video>
+                <div id="player-message-overlay" style="display: flex;">
+                    <span id="player-message-text">Selecciona una fuente</span>
+                </div>
+            </div>
+            <!-- NAVEGACIÓN DE EPISODIOS -->
+            <nav class="episode-navigation-controls">
+                {% if enlace_anterior %}
+                    <a href="{{ enlace_anterior }}" class="button nav-button-episode nav-button-prev">
+                        <img src="{% static 'core/img/anterior.png' %}" alt="Anterior" class="nav-button-icon">
+                        <span class="nav-button-text">ANTERIOR</span>
+                    </a>
+                {% else %}
+                    <span class="button nav-button-episode nav-button-disabled">
+                        <img src="{% static 'core/img/prohibido.png' %}" alt="prohibido">
+                        ANTERIOR
+                    </span>
+                {% endif %}
+                
+                <a href="{{ enlace_lista_episodios }}" class="button nav-button-episode nav-button-list">
+                    <img src="{% static 'core/img/menu-cap.png' %}" alt="Lista de Episodios" class="nav-button-icon">
+                </a>
+                
+                {% if enlace_siguiente %}
+                    <a href="{{ enlace_siguiente }}" class="button nav-button-episode nav-button-next">
+                        <img src="{% static 'core/img/siguiente.png' %}" alt="Siguiente" class="nav-button-icon">
+                        <span class="nav-button-text">SIGUIENTE</span>                
+                    </a>
+                {% else %}
+                    <span class="button nav-button-episode nav-button-disabled">
+                        SIGUIENTE
+                        <img src="{% static 'core/img/prohibido.png' %}" alt="prohibido">
+                    </span>
+                {% endif %}
+            </nav>
+        </div>
+        <div class="options-wrapper">            
+            <div class="ad-container ad-sidebar">
+                <!-- Aquí va el código para el anuncio 300x250 -->
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : 'd92ae6be03a5314e3a7494b6a3f72f8e',
+                        'format' : 'iframe',
+                        'height' : 250,
+                        'width' : 300,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/d92ae6be03a5314e3a7494b6a3f72f8e/invoke.js"></script>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Necesitarás estas imágenes en core/static/core/img/ #}
+{# anterior.png, menu-cap.png, siguiente.png #}
+{# Te recomiendo que sean iconos blancos para que se vean bien sobre los botones. #}
+
+{% endblock %}

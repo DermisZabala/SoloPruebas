@@ -1,0 +1,61 @@
+{% extends 'core/_base.html' %}
+{% load static %}
+{% block content %}
+<h1 class="section-title">{{ page_title }}</h1>
+<div class="content-grid" id="content-grid">
+    
+    <!-- El bucle inicial se queda aquí, renderiza la primera página -->
+    {% for item in content %}
+    {# El enlace no cambia #}
+        {% if item.type == 'Película' %}
+            <a href="{% url 'movie_detail' item.id %}" class="content-card" data-title="{{ item.title }}">
+        {% elif item.type == 'Anime' %}
+            <a href="{% url 'anime_detail' item.id %}" class="content-card" data-title="{{ item.title }}">
+        {% else %} {# Para 'Serie' #}
+            <a href="{% url 'series_detail' item.id %}" class="content-card" data-title="{{ item.title }}">
+        {% endif %}
+
+        {# --- LÓGICA DE IMAGEN INTELIGENTE PARA LA TARJETA --- #}
+        {% if item.poster_path %}
+            {% if 'http' in item.poster_path %}
+                {# Si es una URL completa (de AniList) #}
+                <img src="{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy" class="card-image">
+            {% else %}
+                {# Si es una ruta relativa (de TMDB) #}
+                <img src="https://image.tmdb.org/t/p/w500{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy" class="card-image">
+            {% endif %}
+        {% else %}
+            <div class="no-poster"><span>{{ item.title }}</span></div>
+        {% endif %}
+        
+        <div class="card-overlay">
+            <h3 class="card-title">{{ item.title }}</h3>
+            <span class="card-type">
+                {{ item.type }}
+            </span>
+        </div>
+    </a>
+{% empty %}
+    <div class="empty-message-container">
+        <p class="empty-message">No se encontraron resultados.</p>
+        {% if query %}
+        <p class="empty-submessage">Intenta con otros términos de búsqueda.</p>
+        {% endif %}
+    </div>
+{% endfor %}
+    
+</div>
+
+<!-- El botón y el spinner se quedan igual -->
+<div class="load-more-container" style="text-align: center; padding: 40px 0;">
+    {% if has_more %}
+        <button id="load-more-btn" class="source-button" 
+                data-page="2" 
+                data-type="{{ content_type }}">
+            Cargar Más
+        </button>
+    {% endif %}
+    <div id="loading-spinner" style="display: none; color: var(--primary-color);">Cargando...</div>
+</div>
+
+{% endblock %}

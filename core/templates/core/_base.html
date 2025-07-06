@@ -1,0 +1,127 @@
+<!-- Archivo: core/templates/core/_base.html (Corregido) -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta name="google-adsense-account" content="ca-pub-7781405439612204">
+    
+    <meta name="description" content="{{ meta_description|default:'Descubre y mira las últimas películas, series y animes en MovieNet. El mejor catálogo online con miles de títulos disponibles.' }}">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z5LYRE2KVY"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-Z5LYRE2KVY');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} | DomoFlix</title>
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body>
+    <header class="navbar">
+        <a href="{% url 'home' %}" class="navbar-brand">DOMOFLIX</a>
+        
+        <!-- Botón de Menú Hamburguesa (para móviles) -->
+        <button class="hamburger-menu" id="hamburger-menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
+        <!-- Contenedor para la navegación y la búsqueda -->
+        <div class="navbar-right-content" id="navbar-right-content">
+            <nav class="navbar-nav">
+                <a href="{% url 'home' %}">Inicio</a>
+                <a href="{% url 'movie_catalog' %}">Películas</a>
+                <a href="{% url 'series_catalog' %}">Series</a>
+                <a href="{% url 'anime_catalog' %}">Anime</a>
+            </nav>
+            <form action="{% url 'search' %}" method="get" class="search-form" id="searchForm">
+                <input type="text" name="q" class="search-input" placeholder="Buscar..." value="{{ query|default:'' }}" autocomplete="off">
+                <button type="submit" class="search-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <div class="ad-container ad-banner-top">
+        <!-- Aquí va el código para el anuncio 728x90 -->
+        <!-- La red publicitaria te dará un <script> o <ins> -->
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '43c47c21a6ed335bd5832e34f9a342ae',
+                'format' : 'iframe',
+                'height' : 90,
+                'width' : 728,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/43c47c21a6ed335bd5832e34f9a342ae/invoke.js"></script>    
+    </div>
+
+    <!-- Este se verá en móvil -->
+    <div class="ad-container ad-mobile-banner">
+        <!-- Aquí va el código para el anuncio 320x50 -->
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '9bab7742b0e42a58f8e041c164760259',
+                'format' : 'iframe',
+                'height' : 50,
+                'width' : 320,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/9bab7742b0e42a58f8e041c164760259/invoke.js"></script>
+    </div>
+
+    <main class="main-container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ======== NUEVO: CONTENEDOR DE ANUNCIO EN FOOTER ======== -->
+    <div class="ad-container ad-banner-footer">
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '43c47c21a6ed335bd5832e34f9a342ae',
+                'format' : 'iframe',
+                'height' : 90,
+                'width' : 728,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/43c47c21a6ed335bd5832e34f9a342ae/invoke.js"></script>    
+    </div>
+    <!-- ======================================================= -->
+
+        <!-- Este se verá en móvil -->
+    <div class="ad-container ad-mobile-banner-bottom">
+        <!-- Aquí va el código para el anuncio 320x50 -->
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '9bab7742b0e42a58f8e041c164760259',
+                'format' : 'iframe',
+                'height' : 50,
+                'width' : 320,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/9bab7742b0e42a58f8e041c164760259/invoke.js"></script>
+    </div>
+    <!-- ======================================================= -->
+
+    <footer class="footer">
+        <p>© {% now "Y" %} DOMOFLIX. Todos los derechos reservados.</p>
+    </footer>
+    
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="{% static 'core/js/main.js' %}"></script>
+</body>
+</html>

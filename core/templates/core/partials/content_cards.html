@@ -1,0 +1,44 @@
+<!-- Archivo: core/templates/core/home.html (Reemplazado) -->
+{% extends 'core/_base.html' %}
+{% load static %}
+
+{% block content %}
+    {# --- NUEVA SECCIÓN DE SCROLL HORIZONTAL --- #}
+    <section class="horizontal-scroll-section">
+        
+        {# El título que se muestra arriba de la fila de pósters #}
+        <h1 class="section-title">{{ page_title }}</h1>
+        
+        {# El contenedor que permitirá el desplazamiento #}
+        <div class="scroll-container">
+            
+            {# Iteramos sobre el contenido como antes #}
+            {% for item in content %}
+                
+                {# Cada item ahora es una 'poster-card' más simple #}
+                {% if item.type == 'Serie' %}
+                    <a href="{% url 'series_detail' item.id %}" class="poster-card">
+                {% else %}
+                    <a href="{% url 'movie_detail' item.id %}" class="poster-card">
+                {% endif %}
+                    
+                    <div class="poster-image-wrapper">
+                         {% if item.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy">
+                        {% else %}
+                            <div class="no-poster-small"><span>{{ item.title }}</span></div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="poster-title">
+                        {{ item.title }}
+                    </div>
+                </a>
+            {% endfor %}
+            
+        </div>
+    </section>
+
+    {# (Opcional) Puedes añadir más secciones aquí si quieres, como "Más Populares", etc. #}
+
+{% endblock %}
