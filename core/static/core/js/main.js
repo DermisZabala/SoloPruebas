@@ -1,7 +1,9 @@
-// Archivo: core/static/core/js/main.js (VERSIÓN FINAL PARA RESOLVER M3U8)
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM cargado. Iniciando main.js...");
 
-    // --- 1. Lógica del Menú Hamburguesa ---
+    // =======================================================
+    // === 1. LÓGICA DE LA INTERFAZ PRINCIPAL (NAVBAR, MENÚ)
+    // =======================================================
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const navbarContent = document.getElementById('navbar-right-content');
     if (hamburgerMenu && navbarContent) {
@@ -11,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- 2. Barra de Navegación Interactiva ---
     const navbar = document.querySelector('.navbar');
     if (navbar) {
         window.addEventListener('scroll', () => {
@@ -24,128 +25,152 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // =======================================================
-    // === 3. LÓGICA DEL REPRODUCTOR (REESCRITA PARA LA API) ===
+    // === 2. LÓGICA UNIFICADA DEL REPRODUCTOR Y MENÚS
     // =======================================================
-    function setupPlayer(containerSelector) {
-        const container = document.querySelector(containerSelector);
-        if (!container) return; 
+    
+    const playerAndOptions = document.querySelector('.player-and-options');
+
+    if (playerAndOptions) {
+        console.log("Reproductor detectado en la página. Configurando...");
 
         const videoElement = document.getElementById('player');
         const playerMessageOverlay = document.getElementById('player-message-overlay');
         const playerMessageText = document.getElementById('player-message-text');
 
         if (!videoElement || !playerMessageOverlay || !playerMessageText) {
-            console.error("Faltan elementos del reproductor en el HTML.");
-            return;
-        }
-
-        const player = new Plyr(videoElement);
-        const hls = new Hls();
-
-        function showMessage(text) {
-            player.stop();
-            hls.detachMedia();
-            videoElement.style.display = 'none';
-            playerMessageOverlay.style.display = 'flex';
-            playerMessageText.textContent = text;
-        }
-        
-        function showPlayer() {
-            playerMessageOverlay.style.display = 'none';
-            videoElement.style.display = 'block';
-        }
-
-        function handleButtonClick(button) {
-            const serverName = button.dataset.serverName;
-            const sourceId = button.dataset.sourceId;
-
-            if (!serverName || !sourceId) {
-                showMessage('Error: Botón sin datos.');
-                return;
-            }
-
-            document.querySelectorAll('.source-button').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            showMessage(`Resolviendo ${serverName}...`);
-            
-            const apiUrl = `/api/resolve/${serverName}/${sourceId}/`;
-
-            fetch(apiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw new Error(err.error || `Error ${response.status}`) });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.m3u8_url) {
-                        showPlayer();
-                        if (Hls.isSupported()) {
-                            hls.loadSource(data.m3u8_url);
-                            hls.attachMedia(videoElement);
-                        } else {
-                            videoElement.src = data.m3u8_url;
-                        }
-                    } else {
-                        throw new Error(data.error || 'Fallo al obtener la URL.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al cargar la fuente:', error);
-                    showMessage(error.message);
-                });
-        }
-
-        // Event listener para los clics manuales del usuario
-        container.addEventListener('click', function(event) {
-            const button = event.target.closest('.source-button');
-            if (button) {
-                handleButtonClick(button);
-            }
-        });
-
-        // Carga automática del primer botón disponible
-        const firstButton = container.querySelector('.source-button');
-        if (firstButton) {
-            console.log("Iniciando carga automática del primer servidor...");
-            handleButtonClick(firstButton); 
+            console.error("Error crítico: Faltan elementos del reproductor en el HTML (player, overlay o text).");
         } else {
-            showMessage("No hay fuentes de vídeo disponibles.");
-        }
-    }
+            const player = new Plyr(videoElement);
+            let hls = new Hls();
 
-    // Ejecutamos la función para ambas páginas (películas y episodios)
-    setupPlayer('.movie-sources');
-    setupPlayer('.episode-sources');
+            function showMessage(text) {
+                console.log(`Mostrando mensaje en overlay: "${text}"`);
+                player.stop();
+                if (hls && hls.media) {
+                    hls.detachMedia();
+                }
+                videoElement.style.display = 'none';
+                playerMessageOverlay.style.display = 'flex';
+                playerMessageText.textContent = text;
+            }
 
+            function handleSourceButtonClick(button) {
+                console.log("handleSourceButtonClick activado para:", button);
+                const serverName = button.dataset.serverName;
+                const sourceId = button.dataset.sourceId;
 
-    // --- 4. Lógica para Series en la página de detalle ---
-    const seasonsContainer = document.querySelector('.seasons-container');
-    const episodesContainer = document.querySelector('.episodes-container');
+                if (!serverName || !sourceId) {
+                    showMessage(`Error: El botón para ${serverName || 'desconocido'} no tiene los datos correctos.`);
+                    console.error("Datos incompletos en el botón:", button.dataset);
+                    return;
+                }
 
-    if (seasonsContainer && episodesContainer) {
-        const seasonButtons = seasonsContainer.querySelectorAll('.season-button');
-        
-        seasonButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                seasonButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                const seasonNumber = this.getAttribute('data-season');
-                const allEpisodeLists = episodesContainer.querySelectorAll('.episodes-list');
-                allEpisodeLists.forEach(list => list.classList.remove('active'));
-                const activeEpisodeList = episodesContainer.querySelector(`.episodes-list[data-season="${seasonNumber}"]`);
-                if (activeEpisodeList) {
-                    activeEpisodeList.classList.add('active');
+                document.querySelectorAll('.source-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                showMessage(`Resolviendo ${serverName}...`);
+                
+                const apiUrl = `/api/resolve/${serverName}/${sourceId}/`;
+                console.log("Haciendo fetch a la API:", apiUrl);
+
+                fetch(apiUrl)
+                    .then(response => {
+                        console.log(`Respuesta de la API recibida con estado: ${response.status}`);
+                        if (!response.ok) {
+                            return response.json().then(err => { throw new Error(err.error || `Error del servidor: ${response.status}`) });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.m3u8_url) {
+                            console.log("API devolvió éxito. URL del M3U8 (proxy):", data.m3u8_url);
+                            playerMessageOverlay.style.display = 'none';
+                            videoElement.style.display = 'block';
+                            
+                            if (Hls.isSupported()) {
+                                hls.loadSource(data.m3u8_url);
+                                hls.attachMedia(videoElement);
+                            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                                videoElement.src = data.m3u8_url;
+                            } else {
+                                showMessage("Tu navegador no soporta streaming HLS.");
+                            }
+                        } else {
+                            throw new Error(data.error || 'Fallo al obtener la URL del M3U8.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error final en el proceso de fetch:', error);
+                        showMessage(error.message);
+                    });
+            }
+
+            // === GESTIÓN DE EVENTOS CENTRALIZADA ===
+            playerAndOptions.addEventListener('click', function(event) {
+                const sourceButton = event.target.closest('.source-button:not(.season-button)');
+                const dropdownSummary = event.target.closest('.dropdown-summary');
+
+                if (sourceButton) {
+                    console.log("Clic detectado en un botón de fuente.");
+                    handleSourceButtonClick(sourceButton);
+                    const parentDetails = sourceButton.closest('.dropdown-menu');
+                    if (parentDetails) {
+                        parentDetails.open = false;
+                    }
+                    return;
+                }
+
+                if (dropdownSummary) {
+                    const parentDetails = dropdownSummary.closest('.dropdown-menu');
+                    playerAndOptions.querySelectorAll('.dropdown-menu').forEach(details => {
+                        if (details !== parentDetails) {
+                            details.open = false;
+                        }
+                    });
                 }
             });
+
+            // --- Carga Automática del Primer Botón ---
+            const firstSourceButton = playerAndOptions.querySelector('.source-button:not(.season-button)');
+            if (firstSourceButton) {
+                console.log("Primer botón de fuente encontrado. Iniciando carga automática...");
+                handleSourceButtonClick(firstSourceButton);
+            } else {
+                showMessage("No hay fuentes de vídeo disponibles.");
+                console.warn("No se encontraron botones de fuente para la carga automática.");
+            }
+        }
+    } else {
+        console.log("No se detectó ningún reproductor en esta página.");
+    }
+    
+    // =======================================================
+    // === 3. LÓGICA PARA SERIES EN LA PÁGINA DE DETALLE
+    // =======================================================
+    const seasonsContainer = document.querySelector('.seasons-container');
+    if (seasonsContainer) {
+        seasonsContainer.addEventListener('click', function(event){
+            const button = event.target.closest('.season-button');
+            if(button){
+                document.querySelectorAll('.season-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                const seasonNumber = button.dataset.season;
+                document.querySelectorAll('.episodes-list').forEach(list => list.classList.remove('active'));
+                
+                const activeList = document.querySelector(`.episodes-list[data-season="${seasonNumber}"]`);
+                if(activeList) activeList.classList.add('active');
+            }
         });
 
-        if (seasonButtons.length > 0) {
-            seasonButtons[0].click();
+        const firstSeasonButton = seasonsContainer.querySelector('.season-button');
+        if (firstSeasonButton) {
+            firstSeasonButton.click();
         }
     }
 
-    // --- 5. LÓGICA PARA CARGAR MÁS CONTENIDO ---
+    // =======================================================
+    // === 4. LÓGICA PARA CARGAR MÁS CONTENIDO
+    // =======================================================
     const loadMoreBtn = document.getElementById('load-more-btn');
     const contentGrid = document.getElementById('content-grid');
     const loadingSpinner = document.getElementById('loading-spinner');

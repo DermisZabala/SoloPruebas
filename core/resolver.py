@@ -1,4 +1,4 @@
-# Archivo: core/resolver.py (VERSIÓN CON DEPURADORES PARA VERCEL)
+# Archivo: core/resolver.py (LA VERSIÓN CORRECTA Y FINAL)
 
 import os
 import time
@@ -7,15 +7,15 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 
 # Importamos webdriver_manager solo si no estamos en Vercel
 if 'VERCEL' not in os.environ:
     from webdriver_manager.chrome import ChromeDriverManager
-    from selenium.webdriver.chrome.service import Service as ChromeService
 
 def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
-    print(f"\n--- [RESOLVER] Iniciando para: {iframe_url}")
+    print(f"\n--- [SELENIUM-RESOLVER] Iniciando para: {iframe_url}")
     
     # Configuración de Chrome Options
     chrome_options = Options()
@@ -23,93 +23,71 @@ def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1280x1696")
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-dev-tools")
+    chrome_options.add_argument("--no-zygote")
+    
+    logging_prefs = {'performance': 'ALL'}
+    chrome_options.set_capability('goog:loggingPrefs', logging_prefs)
     
     driver = None
     m3u8_url = None
     
     try:
-        # --- Lógica de Entorno: Vercel (Bright Data) vs. Local (WebDriverManager) ---
+        # --- Lógica de Entorno: Vercel vs. Local ---
         if 'VERCEL' in os.environ:
-            print("[RESOLVER-VERCEL] 1. Entorno Vercel detectado. Intentando conectar a Bright Data...")
-            
-            user = os.environ.get('BRIGHTDATA_USERNAME')
-            password = os.environ.get('BRIGHTDATA_PASSWORD')
-            host = os.environ.get('BRIGHTDATA_HOST')
-            port = os.environ.get('BRIGHTDATA_PORT')
-            
-            if not all([user, password, host, port]):
-                print("[RESOLVER-VERCEL] ERROR FATAL: Faltan una o más variables de entorno de Bright Data.")
-                return None
-            
-            print(f"[RESOLVER-VERCEL] 2. Credenciales encontradas. Usuario: {user}, Host: {host}")
-            
-            remote_url = f'http://{user}:{password}@{host}:{port}'
-            print("[RESOLVER-VERCEL] 3. URL de conexión remota construida.")
-            
-            print("[RESOLVER-VERCEL] 4. Intentando instanciar webdriver.Remote...")
-            driver = webdriver.Remote(command_executor=remote_url, options=chrome_options)
-            print("[RESOLVER-VERCEL] 5. ¡ÉXITO! Conexión a webdriver.Remote establecida.")
+            print("[SELENIUM-RESOLVER] Entorno Vercel detectado.")
+            # Esta lógica es para usar el Chrome que se instala con el package.json
+            chrome_options.binary_location = "/var/task/node_modules/chrome-aws-lambda/bin/chromium"
+            service = ChromeService(executable_path="/var/task/node_modules/chrome-aws-lambda/bin/chromedriver")
+            driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
-            # ENTORNO DE DESARROLLO (TU PC LOCAL)
-            print("[RESOLVER-LOCAL] Entorno Local detectado. Usando webdriver-manager.")
+            print("[SELENIUM-RESOLVER] Entorno Local detectado.")
             driver_manager = ChromeDriverManager().install()
             service = ChromeService(executable_path=driver_manager)
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
-        print("[RESOLVER-COMÚN] 6. Driver conectado. Navegando a la página...")
+        print("[SELENIUM-RESOLVER] Driver de Chrome iniciado con éxito.")
         
         driver.get(iframe_url)
-        print("[RESOLVER-COMÚN] 7. Página cargada. Esperando 5s...")
         time.sleep(5)
         
         try:
-            print("[RESOLVER-COMÚN] 8. Iniciando bloque de clic...")
             if is_filemoon:
-                print("[RESOLVER-COMÚN] 8.1. MODO FILEMOON: Buscando iframe secundario...")
-                wait = WebDriverWait(driver, 15)
+                wait = WebDriverWait(driver, 10)
                 player_iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[src*='bkg']")))
                 if player_iframe:
                     iframe_src = player_iframe.get_attribute('src')
                     driver.get(iframe_src)
-                    print("[RESOLVER-COMÚN] 8.2. Navegación a iframe completada. Esperando 5s...")
                     time.sleep(5)
             
             wait = WebDriverWait(driver, 15)
             play_button = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.jw-video.jw-reset, .vjs-big-play-button, video")))
             if play_button:
                 driver.execute_script("arguments[0].click();", play_button)
-                print("[RESOLVER-COMÚN] 8.3. Clic forzado con éxito. Esperando 5s...")
                 time.sleep(5)
         except Exception as e:
-            print(f"[RESOLVER-COMÚN] 8.ERROR. ADVERTENCIA durante el proceso de clic/iframe: {e}")
+            print(f"[SELENIUM-RESOLVER] ADVERTENCIA durante el proceso de clic/iframe: {e}")
         
-        print("[RESOLVER-COMÚN] 9. Buscando M3U8 en el atributo 'src' del tag de video...")
-        
-        video_tags = driver.find_elements(By.TAG_NAME, "video")
-        print(f"[RESOLVER-COMÚN] 9.1. Se encontraron {len(video_tags)} tags de video.")
-        for i, video in enumerate(video_tags):
-            src = video.get_attribute('src')
-            print(f"[RESOLVER-COMÚN] 9.2.{i}. Analizando video tag. SRC = {src[:100] if src else 'None'}")
-            if src and '.m3u8' in src:
-                m3u8_url = src
-                print(f"--- [RESOLVER-COMÚN] 9.3. ¡ÉXITO! M3U8 encontrado.")
-                break
-
-        if not m3u8_url:
-            print("--- [RESOLVER-COMÚN] 10. FALLO: No se encontró URL .m3u8 en los tags de video.")
+        logs = driver.get_log('performance')
+        found_urls = [log.get('params', {}).get('request', {}).get('url', '') for entry in logs for log in [json.loads(entry['message'])['message']] if 'Network.requestWillBeSent' in log.get('method', '') and '.m3u8' in log.get('params', {}).get('request', {}).get('url', '')]
+        if found_urls:
+            master_m3u8 = next((url for url in found_urls if 'seg' not in url.lower() and 'chunk' not in url.lower()), None)
+            m3u8_url = master_m3u8 if master_m3u8 else found_urls[-1]
+            print(f"--- [SELENIUM-RESOLVER] ¡ÉXITO! M3U8 encontrado: {m3u8_url[:100]}...")
+        else:
+            print("--- [SELENIUM-RESOLVER] FALLO: No se encontró URL .m3u8.")
 
     except Exception as e:
-        print(f"--- [RESOLVER-COMÚN] ERROR CRÍTICO GENERAL: {type(e).__name__}: {e}")
+        print(f"--- [SELENIUM-RESOLVER] ERROR CRÍTICO: {type(e).__name__}: {e}")
     finally:
         if driver:
-            print("[RESOLVER-COMÚN] 11. Cerrando el driver.")
             driver.quit()
     
-    print(f"[RESOLVER] Finalizado. URL devuelta: {m3u8_url}")
     return m3u8_url
 
-# --- Funciones de entrada (no cambian) ---
-# ... (el resto del archivo se queda igual)
+# --- Funciones de entrada ---
 def get_m3u8_from_streamwish(source_id):
     return get_m3u8_link(f"https://streamwish.to/e/{source_id}")
 
