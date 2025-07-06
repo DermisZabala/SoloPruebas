@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /cargar-mas/
+Disallow: /buscar/ # No queremos que indexe los resultados de búsqueda
+
+Allow: /
+
+Sitemap: https://movie-net-nine.vercel.app/sitemap.xml

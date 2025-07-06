@@ -1,0 +1,319 @@
+/* Archivo: core/static/core/css/style.css (VERSIÓN FINAL Y COMPLETA) */
+
+/* --- 1. CONFIGURACIÓN GLOBAL Y FUENTES --- */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap');
+
+:root {
+    --primary-color: #00f2ff; /* Neon Blue */
+    --secondary-color: #ff00e5; /* Neon Pink */
+    --bg-color: #0a0a1a;
+    --surface-color: #1a1a2e;
+    --text-color: #e0e0e0;
+    --text-darker: #a0a0c0;
+    --danger-color: #dc3545;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Rajdhani', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+a { color: var(--primary-color); text-decoration: none; transition: color 0.3s ease; }
+a:hover { color: var(--secondary-color); }
+
+/* --- 2. BARRA DE NAVEGACIÓN --- */
+.navbar { position: fixed; top: 0; left: 0; width: 100%; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; background: transparent; transition: background-color 0.4s ease, padding 0.4s ease; backdrop-filter: blur(0px); }
+.navbar.scrolled { background-color: rgba(10, 10, 26, 0.85); backdrop-filter: blur(10px); padding: 0.5rem 5%; border-bottom: 1px solid rgba(0, 242, 255, 0.1); }
+.navbar-brand { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 700; text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); z-index: 10; }
+.navbar-right-content { display: flex; align-items: center; gap: 2rem; }
+.navbar-nav { display: flex; gap: 2rem; }
+.navbar-nav a { font-weight: 600; font-size: 1.1rem; position: relative; padding: 5px 0; }
+.navbar-nav a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: 0; left: 50%; transform: translateX(-50%); background-color: var(--secondary-color); transition: width 0.3s ease; }
+.navbar-nav a:hover::after, .navbar-nav a.active::after { width: 100%; }
+.search-form { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--primary-color); border-radius: 50px; padding-left: 1rem; overflow: hidden; }
+.search-input { background: transparent; border: none; color: var(--text-color); padding: 0.5rem 0; width: 200px; transition: width 0.3s ease; }
+.search-input:focus { outline: none; width: 250px; }
+.search-button { background: var(--primary-color); border: none; width: 45px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--bg-color); margin-left: 0.5rem; transition: background-color 0.2s; }
+.search-button:hover { background-color: var(--secondary-color); }
+.hamburger-menu { display: none; flex-direction: column; justify-content: space-around; width: 2rem; height: 2rem; background: transparent; border: none; cursor: pointer; padding: 0; z-index: 10; }
+.hamburger-line { width: 2rem; height: 0.25rem; background: var(--primary-color); border-radius: 10px; transition: all 0.3s linear; position: relative; transform-origin: 1px; }
+.hamburger-menu.open .hamburger-line:nth-child(1) { transform: rotate(45deg); }
+.hamburger-menu.open .hamburger-line:nth-child(2) { opacity: 0; transform: translateX(20px); }
+.hamburger-menu.open .hamburger-line:nth-child(3) { transform: rotate(-45deg); }
+
+
+/* --- 3. LAYOUT PRINCIPAL Y CUADRÍCULA DE CONTENIDO --- */
+.main-container { padding: 40px 5% 40px; max-width: 1600px; margin: 0 auto; }
+.content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+.content-card { display: block; position: relative; border-radius: 8px; overflow: hidden; border: 1px solid transparent; transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; background-color: var(--surface-color); aspect-ratio: 2 / 3; }
+.content-card:hover { transform: translateY(-10px); box-shadow: 0 0 20px var(--primary-color); border-color: var(--primary-color); }
+.content-card .card-image { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+.content-card:hover .card-image { transform: scale(1.05); }
+.card-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 2.5rem 1rem 1rem; background: linear-gradient(to top, rgba(10,10,26,1) 40%, transparent); }
+.card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.2rem; line-height: 1.2; color: #fff; }
+.card-type { font-size: 0.8rem; color: var(--text-darker); }
+.no-poster { width: 100%; height: 100%; background-color: var(--surface-color); display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem; }
+.empty-message-container { grid-column: 1 / -1; text-align: center; padding: 4rem 0; color: var(--text-darker); }
+.empty-message { font-size: 1.5rem; font-weight: 600; }
+.empty-submessage { font-size: 1rem; margin-top: 0.5rem; }
+
+
+/* --- 4. PÁGINA DE DETALLE --- */
+.backdrop { width: 100%; height: 60vh; background-size: cover; background-position: center top; position: relative; }
+.backdrop::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, var(--bg-color) 15%, transparent 60%); }
+.detail-container { max-width: 1200px; margin: -150px auto 40px; padding: 20px; position: relative; z-index: 2; }
+.detail-header { display: flex; gap: 40px; margin-bottom: 40px; align-items: flex-start; }
+.poster-wrapper { flex-shrink: 0; width: 280px; }
+.poster-wrapper img { width: 100%; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 242, 255, 0.2); }
+.header-info { flex-grow: 1; padding-top: 20px; }
+.header-info a { font-size: 1.1rem; margin-bottom: 1rem; display: inline-block; }
+.detail-title { font-family: 'Orbitron', sans-serif; font-size: 3rem; margin-bottom: 10px; text-shadow: 2px 2px 5px #000; }
+.genres-list, .cast-list, .detail-overview { margin-bottom: 1rem; color: var(--text-darker); }
+.genres-list strong, .cast-list strong, .detail-overview strong { color: var(--text-color); }
+.player-and-options { display: grid; grid-template-columns: 1fr; gap: 40px; margin-top: 30px; }
+@media (min-width: 992px) { .player-and-options { grid-template-columns: 2fr 1fr; } }
+.player-wrapper h2, .options-wrapper h2, .series-episodes-list h2 { font-size: 1.5rem; font-family: 'Orbitron', sans-serif; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 15px; }
+
+
+/* --- 5. REPRODUCTOR Y OPCIONES (DISEÑO CORREGIDO) --- */
+
+.player-wrapper {
+    border-radius: 8px;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
+    background-color: var(--surface-color);
+    overflow: hidden;
+}
+
+/* ===== INICIO DE LA MODIFICACIÓN ===== */
+/* --- BLOQUE AÑADIDO PARA SOLUCIONAR EL APILAMIENTO --- */
+/* Cuando un menú desplegable está abierto dentro del reproductor... */
+.player-wrapper:has(.dropdown-menu[open]) {
+    /* ...permitimos que el contenido se desborde para que el menú sea visible. */
+    overflow: visible;
+}
+/* ===== FIN DE LA MODIFICACIÓN ===== */
+
+.movie-sources,
+.episode-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.source-group {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: relative;
+}
+
+.dropdown-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: transparent;
+    border: 1px solid var(--primary-color);
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    list-style: none;
+    transition: background-color 0.2s;
+    color: var(--text-color);
+}
+
+.dropdown-summary::-webkit-details-marker {
+    display: none;
+}
+
+.dropdown-summary:hover {
+    background-color: rgba(0, 242, 255, 0.1);
+}
+
+.arrow-container {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.arrow-container img {
+    height: 12px;
+    width: auto;
+}
+
+.flecha-arriba {
+    display: none;
+}
+
+.dropdown-menu[open] .flecha-arriba {
+    display: inline-block;
+}
+
+.dropdown-menu[open] .flecha-baja {
+    display: none;
+}
+
+.source-buttons {
+    position: absolute;
+    z-index: 10;
+    margin-top: 8px;
+    padding: 10px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 5px;
+    min-width: 180px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto; 
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--surface-color);
+}
+
+.source-buttons::-webkit-scrollbar { width: 8px; }
+.source-buttons::-webkit-scrollbar-track { background: var(--surface-color); border-radius: 10px; }
+.source-buttons::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 10px; border: 2px solid var(--surface-color); }
+
+.source-button {
+    width: 100%;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid transparent;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.source-button:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.source-button.active {
+    background-color: var(--secondary-color);
+    color: var(--bg-color);
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 10px var(--secondary-color);
+}
+
+.player-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    background-color: #000;
+}
+
+.player-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+
+/* --- 6. PÁGINA REPRODUCTOR DE EPISODIOS Y SERIES --- */
+.episode-title { font-size: 1.8rem; color: var(--text-darker); margin-bottom: 15px; }
+.episode-navigation-controls { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 15px; padding: 15px; }
+.nav-button-episode { display: flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--primary-color); border-radius: 25px; padding: 10px 20px; font-size: 0.9em; font-weight: 600; text-transform: uppercase; transition: all 0.3s ease; }
+.nav-button-episode:hover { background-color: var(--primary-color); color: var(--bg-color); border-color: var(--primary-color); transform: translateY(-2px); }
+.nav-button-list { background-color: var(--danger-color); border-color: var(--danger-color); border-radius: 50%; padding: 12px; width: 50px; height: 50px; }
+.nav-button-list:hover { background-color: #a31725; border-color: #a31725; }
+.nav-button-icon { height: 18px; width: auto; display: inline-block; filter: brightness(0) invert(1); }
+.nav-button-list .nav-button-icon { height: 24px; }
+.nav-button-next { flex-direction: row-reverse; }
+.nav-button-disabled { background-color: #2a2a3e; border-color: #3a3a4e; color: #606080; cursor: not-allowed; }
+.nav-button-disabled img{ width: 20px; height: 20px; }
+
+.seasons-container { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+.episodes-list { list-style: none; max-height: 400px; overflow-y: auto; background: rgba(26, 26, 46, 0.5); border-radius: 5px; display: none; padding: 10px; }
+.episodes-list.active { display: block; }
+.episode-item a { display: block; padding: 12px 15px; text-decoration: none; color: var(--text-color); border-bottom: 1px solid var(--surface-color); transition: background-color 0.2s, color 0.2s; border-radius: 4px; }
+.episode-item a:hover { background-color: var(--primary-color); color: var(--bg-color); }
+.episode-item:last-child a { border-bottom: none; }
+.episode-number { font-weight: 700; color: var(--secondary-color); margin-right: 10px; }
+
+
+/* --- 7. FOOTER Y RESPONSIVE --- */
+.footer { text-align: center; padding: 2rem 5%; margin-top: auto; border-top: 1px solid var(--surface-color); color: var(--text-darker); }
+.ad-container { margin: 0px auto; display: flex; align-items: center; justify-content: center; overflow: hidden; background-color: #1a1a2e; }
+.ad-banner-top, .ad-banner-footer { width: 728px; height: 90px; }
+.ad-banner-footer{ margin-bottom: 10px; }
+.ad-banner-top { margin-top: 80px; }
+.ad-sidebar { width: 300px; height: 250px; margin-top: 30px; }
+.ad-mobile-banner, .ad-mobile-banner-bottom { width: 320px; height: 50px; display: none; }
+.main-container{ padding-top: 10px; }
+
+@media (max-width: 992px) {
+    .navbar-right-content { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(10, 10, 26, 0.98); backdrop-filter: blur(15px); flex-direction: column; justify-content: center; align-items: center; gap: 3rem; transform: translateY(-100%); transition: transform 0.4s ease-in-out; }
+    .navbar-right-content.open { transform: translateY(0); }
+    .navbar-nav { flex-direction: column; text-align: center; gap: 2rem; }
+    .navbar-nav a { font-size: 1.5rem; }
+    .hamburger-menu { display: flex; }
+    .detail-header { flex-direction: column; align-items: center; text-align: center; }
+}
+
+@media (max-width: 768px) {
+    .main-container { padding: 10px 15px 40px; }
+    .detail-container { margin-top: -120px; padding: 15px; }
+    .detail-title { font-size: 2.2rem; }
+    .content-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .poster-wrapper { width: 220px; }
+    .ad-banner-top, .ad-banner-footer { display: none !important; }
+    .ad-mobile-banner, .ad-mobile-banner-bottom { display: flex !important; margin: 20px auto; }
+    .ad-sidebar { margin-left: auto; margin-right: auto; }
+    .ad-mobile-banner{ margin-top: 80px; margin-bottom: 0; }
+}
+
+@media (max-width: 480px) {
+    .content-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .main-container{ padding: 0; margin: 25px 15px 0 15px; }
+    .detail-container{ padding: 15px 0px; }
+}
+
+/* Clase para ocultar texto para SEO */
+.hidden-for-users {
+    position: absolute !important;
+    height: 1px;
+    width: 1px;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+}
+
+/* ===== ESTILOS ESPECÍFICOS PARA EL BOTÓN CARGAR MÁS ===== */
+
+#load-more-btn {
+    width: auto; /* Ancho automático para que se ajuste al texto */
+    padding: 12px 30px; /* Más padding para que se vea más grande y "clickeable" */
+    font-size: 1.1rem; /* Un poco más grande */
+    text-align: center; /* Centra el texto "Cargar Más" */
+}
+
+#load-more-btn:hover {
+    background-color: var(--primary-color); /* Fondo al pasar el ratón */
+    color: var(--bg-color); /* Color del texto al pasar el ratón */
+    box-shadow: 0 0 15px var(--primary-color);
+}
