@@ -236,58 +236,58 @@ from . import resolver # ...y otros imports que ya tienes
 
 @csrf_exempt
 def resolve_source_view(request, server_name, source_id):
-    """
-    API endpoint con depuradores para encontrar el problema.
-    """
-    # === DEPURADOR 1: ¿Llega la petición a la vista correcta? ===
-    print("==========================================================")
-    print(f"[API DEBUG] Petición RECIBIDA a 'resolve_source_view'.")
-    print(f"[API DEBUG] -> Método HTTP: {request.method}")
-    print(f"[API DEBUG] -> server_name capturado: '{server_name}' (Tipo: {type(server_name)})")
-    print(f"[API DEBUG] -> source_id capturado: '{source_id}' (Tipo: {type(source_id)})")
+    # """
+    # API endpoint con depuradores para encontrar el problema.
+    # """
+    # # === DEPURADOR 1: ¿Llega la petición a la vista correcta? ===
+    # print("==========================================================")
+    # print(f"[API DEBUG] Petición RECIBIDA a 'resolve_source_view'.")
+    # print(f"[API DEBUG] -> Método HTTP: {request.method}")
+    # print(f"[API DEBUG] -> server_name capturado: '{server_name}' (Tipo: {type(server_name)})")
+    # print(f"[API DEBUG] -> source_id capturado: '{source_id}' (Tipo: {type(source_id)})")
     
-    resolved_url = None
-    server_name_lower = server_name.lower()
+    # resolved_url = None
+    # server_name_lower = server_name.lower()
     
-    # === DEPURADOR 2: ¿Estamos entrando en el `if` correcto? ===
-    if server_name_lower == 'streamwish' or server_name_lower == 'sw':
-        print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_streamwish...")
-        resolved_url = resolver.get_m3u8_from_streamwish(source_id)
+    # # === DEPURADOR 2: ¿Estamos entrando en el `if` correcto? ===
+    # if server_name_lower == 'streamwish' or server_name_lower == 'sw':
+    #     print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_streamwish...")
+    #     resolved_url = resolver.get_m3u8_from_streamwish(source_id)
         
-    elif server_name_lower == 'filemoon':
-        print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_filemoon...")
-        resolved_url = resolver.get_m3u8_from_filemoon(source_id)
+    # elif server_name_lower == 'filemoon':
+    #     print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_filemoon...")
+    #     resolved_url = resolver.get_m3u8_from_filemoon(source_id)
         
-    elif server_name_lower == 'vidhide':
-        print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_vidhide...")
-        resolved_url = resolver.get_m3u8_from_vidhide(source_id)
+    # elif server_name_lower == 'vidhide':
+    #     print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_vidhide...")
+    #     resolved_url = resolver.get_m3u8_from_vidhide(source_id)
     
-    # --- AÑADE ESTE ELIF PARA VOESX ---
-    elif server_name_lower == 'voesx':
-        print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_voesx...")
-        resolved_url = resolver.get_m3u8_from_voesx(source_id)
+    # # --- AÑADE ESTE ELIF PARA VOESX ---
+    # elif server_name_lower == 'voesx':
+    #     print(f"[API DEBUG] Coincidencia encontrada. Llamando a resolver.get_m3u8_from_voesx...")
+    #     resolved_url = resolver.get_m3u8_from_voesx(source_id)
     
-    else:
-        # === DEPURADOR 3: Si no entra en ningún if, ¿por qué? ===
-        print(f"[API DEBUG] ERROR: El server_name '{server_name_lower}' no coincide con ninguna opción.")
-        return JsonResponse({'success': False, 'error': f'Servidor "{server_name}" no soportado.'}, status=400)
+    # else:
+    #     # === DEPURADOR 3: Si no entra en ningún if, ¿por qué? ===
+    #     print(f"[API DEBUG] ERROR: El server_name '{server_name_lower}' no coincide con ninguna opción.")
+    #     return JsonResponse({'success': False, 'error': f'Servidor "{server_name}" no soportado.'}, status=400)
 
-    # === DEPURADOR 4: ¿Qué nos devuelve el resolver? ===
-    print(f"[API DEBUG] El 'resolver' devolvió: {resolved_url}")
-    print("==========================================================")
+    # # === DEPURADOR 4: ¿Qué nos devuelve el resolver? ===
+    # print(f"[API DEBUG] El 'resolver' devolvió: {resolved_url}")
+    # print("==========================================================")
     
-    # === ESTA ES LA PARTE A REEMPLAZAR ===
-    if resolved_url:
-        # Codificamos la URL real del M3U8
-        b64_m3u8_url = base64.urlsafe_b64encode(resolved_url.encode()).decode()
+    # # === ESTA ES LA PARTE A REEMPLAZAR ===
+    # if resolved_url:
+    #     # Codificamos la URL real del M3U8
+    #     b64_m3u8_url = base64.urlsafe_b64encode(resolved_url.encode()).decode()
         
-        # Construimos la URL de NUESTRO PROXY
-        proxy_url = request.build_absolute_uri(reverse('stream_proxy', args=[b64_m3u8_url]))
+    #     # Construimos la URL de NUESTRO PROXY
+    #     proxy_url = request.build_absolute_uri(reverse('stream_proxy', args=[b64_m3u8_url]))
         
-        return JsonResponse({'success': True, 'm3u8_url': proxy_url})
-    else:
-        return JsonResponse({'success': False, 'error': f'No se pudo resolver la fuente para {server_name}. Puede que el enlace esté caído.'}, status=404)
-
+    #     return JsonResponse({'success': True, 'm3u8_url': proxy_url})
+    # else:
+    #     return JsonResponse({'success': False, 'error': f'No se pudo resolver la fuente para {server_name}. Puede que el enlace esté caído.'}, status=404)
+    pass
 
 
 # En core/views.py

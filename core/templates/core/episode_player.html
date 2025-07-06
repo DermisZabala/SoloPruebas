@@ -58,8 +58,8 @@
                             <div class="source-buttons">
                                 {% for source in sources %}
                                     <button class="source-button" 
-                                            data-server-name="{{ source.server_name }}"
-                                            data-source-id="{% if 'streamwish' in source.embed_url %}{{ source.embed_url|cut:'https://streamwish.to/e/'|cut:'/' }}{% elif 'filemoon' in source.embed_url %}{{ source.embed_url|cut:'https://filemoon.sx/e/'|cut:'/' }}{% elif 'vidhidepro' in source.embed_url or 'filelions' in source.embed_url %}{{ source.embed_url|cut:'https://filelions.to/v/'|cut:'/' }}{% elif 'voe.sx' in source.embed_url %}{{ source.embed_url|cut:'https://voe.sx/e/'|cut:'/' }}{% else %}ERROR_PARSING_ID{% endif %}">
+                                            data-m3u8-url="{{ source.resolved_url|default:'' }}" 
+                                            data-server-name="{{ source.server_name }}">
                                         {{ source.server_name }}
                                     </button>
                                 {% endfor %}

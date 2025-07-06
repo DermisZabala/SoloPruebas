@@ -1,8 +1,9 @@
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM cargado. Iniciando main.js...");
+    console.log("DOM cargado. Iniciando main.js para enlaces pre-procesados...");
 
     // =======================================================
-    // === 1. LÓGICA DE LA INTERFAZ PRINCIPAL (NAVBAR, MENÚ)
+    // === 1. LÓGICA DE LA INTERFAZ PRINCIPAL (SIN CAMBIOS)
     // =======================================================
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const navbarContent = document.getElementById('navbar-right-content');
@@ -12,135 +13,92 @@ document.addEventListener('DOMContentLoaded', function() {
             navbarContent.classList.toggle('open');
         });
     }
-
     const navbar = document.querySelector('.navbar');
     if (navbar) {
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
+            if (window.scrollY > 50) navbar.classList.add('scrolled');
+            else navbar.classList.remove('scrolled');
         });
     }
     
     // =======================================================
-    // === 2. LÓGICA UNIFICADA DEL REPRODUCTOR Y MENÚS
+    // === 2. LÓGICA DEL REPRODUCTOR (SIMPLIFICADA)
     // =======================================================
     
     const playerAndOptions = document.querySelector('.player-and-options');
 
     if (playerAndOptions) {
-        console.log("Reproductor detectado en la página. Configurando...");
-
         const videoElement = document.getElementById('player');
         const playerMessageOverlay = document.getElementById('player-message-overlay');
         const playerMessageText = document.getElementById('player-message-text');
 
-        if (!videoElement || !playerMessageOverlay || !playerMessageText) {
-            console.error("Error crítico: Faltan elementos del reproductor en el HTML (player, overlay o text).");
-        } else {
+        if (videoElement && playerMessageOverlay && playerMessageText) {
             const player = new Plyr(videoElement);
             let hls = new Hls();
 
             function showMessage(text) {
-                console.log(`Mostrando mensaje en overlay: "${text}"`);
                 player.stop();
-                if (hls && hls.media) {
-                    hls.detachMedia();
-                }
+                if (hls && hls.media) hls.detachMedia();
                 videoElement.style.display = 'none';
                 playerMessageOverlay.style.display = 'flex';
                 playerMessageText.textContent = text;
             }
 
-            function handleSourceButtonClick(button) {
-                console.log("handleSourceButtonClick activado para:", button);
-                const serverName = button.dataset.serverName;
-                const sourceId = button.dataset.sourceId;
+            function loadVideo(m3u8Url, serverName) {
+                if (m3u8Url && m3u8Url !== 'None') {
+                    console.log(`Cargando video de ${serverName} desde: ${m3u8Url}`);
+                    
+                    // Codificamos la URL en Base64 para pasarla de forma segura a nuestro proxy
+                    const b64_url = btoa(m3u8Url); 
+                    const proxyUrl = `/proxy-stream/${b64_url}/`;
+                    
+                    console.log("URL del proxy construida:", proxyUrl);
 
-                if (!serverName || !sourceId) {
-                    showMessage(`Error: El botón para ${serverName || 'desconocido'} no tiene los datos correctos.`);
-                    console.error("Datos incompletos en el botón:", button.dataset);
-                    return;
+                    playerMessageOverlay.style.display = 'none';
+                    videoElement.style.display = 'block';
+                    
+                    if (Hls.isSupported()) {
+                        hls.loadSource(proxyUrl);
+                        hls.attachMedia(videoElement);
+                    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoElement.src = proxyUrl;
+                    } else {
+                        showMessage("Tu navegador no soporta streaming HLS.");
+                    }
+                } else {
+                    showMessage(`La fuente para ${serverName} no está disponible o el enlace está caído.`);
                 }
+            }
+
+            function handleSourceButtonClick(button) {
+                const m3u8Url = button.dataset.m3u8Url;
+                const serverName = button.dataset.serverName;
 
                 document.querySelectorAll('.source-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                showMessage(`Resolviendo ${serverName}...`);
                 
-                const apiUrl = `/api/resolve/${serverName}/${sourceId}/`;
-                console.log("Haciendo fetch a la API:", apiUrl);
-
-                fetch(apiUrl)
-                    .then(response => {
-                        console.log(`Respuesta de la API recibida con estado: ${response.status}`);
-                        if (!response.ok) {
-                            return response.json().then(err => { throw new Error(err.error || `Error del servidor: ${response.status}`) });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success && data.m3u8_url) {
-                            console.log("API devolvió éxito. URL del M3U8 (proxy):", data.m3u8_url);
-                            playerMessageOverlay.style.display = 'none';
-                            videoElement.style.display = 'block';
-                            
-                            if (Hls.isSupported()) {
-                                hls.loadSource(data.m3u8_url);
-                                hls.attachMedia(videoElement);
-                            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                                videoElement.src = data.m3u8_url;
-                            } else {
-                                showMessage("Tu navegador no soporta streaming HLS.");
-                            }
-                        } else {
-                            throw new Error(data.error || 'Fallo al obtener la URL del M3U8.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error final en el proceso de fetch:', error);
-                        showMessage(error.message);
-                    });
+                loadVideo(m3u8Url, serverName);
             }
 
-            // === GESTIÓN DE EVENTOS CENTRALIZADA ===
+            // Gestión de eventos centralizada
             playerAndOptions.addEventListener('click', function(event) {
                 const sourceButton = event.target.closest('.source-button:not(.season-button)');
-                const dropdownSummary = event.target.closest('.dropdown-summary');
-
                 if (sourceButton) {
-                    console.log("Clic detectado en un botón de fuente.");
                     handleSourceButtonClick(sourceButton);
                     const parentDetails = sourceButton.closest('.dropdown-menu');
-                    if (parentDetails) {
-                        parentDetails.open = false;
-                    }
-                    return;
-                }
-
-                if (dropdownSummary) {
-                    const parentDetails = dropdownSummary.closest('.dropdown-menu');
-                    playerAndOptions.querySelectorAll('.dropdown-menu').forEach(details => {
-                        if (details !== parentDetails) {
-                            details.open = false;
-                        }
-                    });
+                    if (parentDetails) parentDetails.open = false;
                 }
             });
 
-            // --- Carga Automática del Primer Botón ---
+            // Carga Automática del Primer Botón
             const firstSourceButton = playerAndOptions.querySelector('.source-button:not(.season-button)');
             if (firstSourceButton) {
-                console.log("Primer botón de fuente encontrado. Iniciando carga automática...");
+                console.log("Iniciando carga automática del primer servidor...");
                 handleSourceButtonClick(firstSourceButton);
             } else {
                 showMessage("No hay fuentes de vídeo disponibles.");
-                console.warn("No se encontraron botones de fuente para la carga automática.");
             }
         }
-    } else {
-        console.log("No se detectó ningún reproductor en esta página.");
     }
     
     // =======================================================
