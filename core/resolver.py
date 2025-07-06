@@ -1,4 +1,4 @@
-# Archivo: core/resolver.py (LA VERSIÓN CORRECTA Y FINAL)
+# Archivo: core/resolver.py (VERSIÓN OPTIMIZADA PARA TIMEOUTS EN VERCEL)
 
 import os
 import time
@@ -10,20 +10,19 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 
-# Importamos webdriver_manager solo si no estamos en Vercel
 if 'VERCEL' not in os.environ:
     from webdriver_manager.chrome import ChromeDriverManager
 
 def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
     print(f"\n--- [SELENIUM-RESOLVER] Iniciando para: {iframe_url}")
     
-    # Configuración de Chrome Options
+    # Opciones de Chrome
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1280x1696")
+    chrome_options.add_argument("--window-size=1280x720") # Tamaño más pequeño
     chrome_options.add_argument("--single-process")
     chrome_options.add_argument("--disable-dev-tools")
     chrome_options.add_argument("--no-zygote")
@@ -38,7 +37,6 @@ def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
         # --- Lógica de Entorno: Vercel vs. Local ---
         if 'VERCEL' in os.environ:
             print("[SELENIUM-RESOLVER] Entorno Vercel detectado.")
-            # Esta lógica es para usar el Chrome que se instala con el package.json
             chrome_options.binary_location = "/var/task/node_modules/chrome-aws-lambda/bin/chromium"
             service = ChromeService(executable_path="/var/task/node_modules/chrome-aws-lambda/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -50,25 +48,37 @@ def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
 
         print("[SELENIUM-RESOLVER] Driver de Chrome iniciado con éxito.")
         
+        # === AJUSTE CLAVE DE TIMEOUT ===
+        # Aumentamos el timeout de carga de la página. Si no carga en 20s, falla.
+        driver.set_page_load_timeout(20) 
+        
+        print(f"[SELENIUM-RESOLVER] Navegando a {iframe_url} (timeout de 20s)...")
         driver.get(iframe_url)
-        time.sleep(5)
+        
+        # Reducimos la espera estática, confiamos más en las esperas explícitas.
+        time.sleep(2) 
         
         try:
             if is_filemoon:
-                wait = WebDriverWait(driver, 10)
+                # Damos más tiempo para encontrar el iframe en Filemoon
+                wait = WebDriverWait(driver, 20) 
                 player_iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[src*='bkg']")))
                 if player_iframe:
                     iframe_src = player_iframe.get_attribute('src')
                     driver.get(iframe_src)
-                    time.sleep(5)
+                    time.sleep(3)
             
-            wait = WebDriverWait(driver, 15)
+            # Aumentamos la espera para el botón de play
+            wait = WebDriverWait(driver, 20)
             play_button = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.jw-video.jw-reset, .vjs-big-play-button, video")))
             if play_button:
                 driver.execute_script("arguments[0].click();", play_button)
-                time.sleep(5)
+                time.sleep(3) # Espera post-clic
         except Exception as e:
-            print(f"[SELENIUM-RESOLVER] ADVERTENCIA durante el proceso de clic/iframe: {e}")
+            print(f"[SELENIUM-RESOLVER] ADVERTENCIA: No se pudo hacer clic o encontrar iframe, continuando... ({e})")
+        
+        # Damos una última oportunidad de que las peticiones se registren
+        time.sleep(2) 
         
         logs = driver.get_log('performance')
         found_urls = [log.get('params', {}).get('request', {}).get('url', '') for entry in logs for log in [json.loads(entry['message'])['message']] if 'Network.requestWillBeSent' in log.get('method', '') and '.m3u8' in log.get('params', {}).get('request', {}).get('url', '')]
@@ -87,7 +97,7 @@ def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
     
     return m3u8_url
 
-# --- Funciones de entrada ---
+# ... (El resto del archivo se queda igual) ...
 def get_m3u8_from_streamwish(source_id):
     return get_m3u8_link(f"https://streamwish.to/e/{source_id}")
 
