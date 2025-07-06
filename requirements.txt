@@ -25,7 +25,6 @@ packaging==25.0
 # --- Dependencias para Selenium en Vercel y PyExecJS ---
 selenium==4.21.0
 PyExecJS==1.5.1
-node-js-bin==20.15.1  # Provee un runtime de JS para PyExecJS en Vercel
 
 # --- Dependencia para Base de Datos en Producción (PostgreSQL) ---
 # Descomenta esta línea cuando configures Vercel Postgres o una base de datos externa.
