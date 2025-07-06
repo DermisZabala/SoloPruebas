@@ -2,19 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "build.sh",
-      "use": "@vercel/static-build",
+      "src": "mi_cuevana/wsgi.py",
+      "use": "@vercel/python",
       "config": {
-        "distDir": "staticfiles"
+        "maxLambdaSize": "25mb",
+        "runtime": "python3.12",
+        "buildCommand": "python3.12 manage.py collectstatic --noinput"
       }
     },
     {
-      "src": "mi_cuevana/wsgi.py",
-      "use": "@vercel/python"
+      "src": "package.json",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
