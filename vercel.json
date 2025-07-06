@@ -10,5 +10,11 @@
         "buildCommand": "python3.12 manage.py collectstatic --noinput"
       }
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "mi_cuevana/wsgi.py"
+    }
   ]
 }
