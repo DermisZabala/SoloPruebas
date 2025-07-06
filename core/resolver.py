@@ -1,4 +1,4 @@
-# Archivo: core/resolver.py (VERSIÓN FINAL Y CORRECTA PARA VERCEL)
+# Archivo: core/resolver.py (VERSIÓN FINAL PARA VERCEL)
 
 import os
 import time
@@ -10,20 +10,24 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 
-# ¡NO IMPORTAMOS webdriver_manager aquí arriba!
+# Importamos webdriver_manager solo si no estamos en Vercel
+if 'VERCEL' not in os.environ:
+    from webdriver_manager.chrome import ChromeDriverManager
 
 def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
     print(f"\n--- [SELENIUM-RESOLVER] Iniciando para: {iframe_url}")
     
-    # Configuración de Chrome
+    # Configuración de Chrome Options
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920x1080")
+    chrome_options.add_argument("--window-size=1280x1696")
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-dev-tools")
+    chrome_options.add_argument("--no-zygote")
     
-    # Habilitamos el logging de performance de forma explícita
     logging_prefs = {'performance': 'ALL'}
     chrome_options.set_capability('goog:loggingPrefs', logging_prefs)
     
@@ -31,18 +35,15 @@ def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
     m3u8_url = None
     
     try:
-        # --- LÓGICA DE ENTORNO: VERCEL vs. LOCAL ---
+        # --- Lógica de Entorno: Vercel vs. Local ---
         if 'VERCEL' in os.environ:
-            # ENTORNO DE PRODUCCIÓN (VERCEL)
             print("[SELENIUM-RESOLVER] Entorno Vercel detectado.")
+            # Usamos las rutas de chrome-aws-lambda
             chrome_options.binary_location = "/var/task/node_modules/chrome-aws-lambda/bin/chromium"
             service = ChromeService(executable_path="/var/task/node_modules/chrome-aws-lambda/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
-            # ENTORNO DE DESARROLLO (TU PC LOCAL)
             print("[SELENIUM-RESOLVER] Entorno Local detectado.")
-            # Importamos y usamos webdriver_manager SÓLO aquí.
-            from webdriver_manager.chrome import ChromeDriverManager
             driver_manager = ChromeDriverManager().install()
             service = ChromeService(executable_path=driver_manager)
             driver = webdriver.Chrome(service=service, options=chrome_options)
