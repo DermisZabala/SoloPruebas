@@ -1,4 +1,4 @@
-// Archivo: core/static/core/js/main.js (Versión Completa y Robusta)
+// Archivo: core/static/core/js/main.js (VERSIÓN FINAL PARA RESOLVER M3U8)
 document.addEventListener('DOMContentLoaded', function() {
 
     // --- 1. Lógica del Menú Hamburguesa ---
@@ -23,36 +23,98 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // --- 3. Lógica del Reproductor ---
-    const player = document.getElementById('video-player');
-    
-    function setupPlayer(buttonsContainerSelector) {
-        const container = document.querySelector(buttonsContainerSelector);
-        if (!container) return;
+    // =======================================================
+    // === 3. LÓGICA DEL REPRODUCTOR (REESCRITA PARA LA API) ===
+    // =======================================================
+    function setupPlayer(containerSelector) {
+        const container = document.querySelector(containerSelector);
+        if (!container) return; 
 
-        const buttons = container.querySelectorAll('.source-button');
-        let firstButton = null;
+        const videoElement = document.getElementById('player');
+        const playerMessageOverlay = document.getElementById('player-message-overlay');
+        const playerMessageText = document.getElementById('player-message-text');
 
-        buttons.forEach(button => {
-            if (!firstButton) firstButton = button;
-            
-            button.addEventListener('click', function() {
-                const embedUrl = this.getAttribute('data-embed-url');
-                if (player && embedUrl) {
-                    player.src = embedUrl;
-                }
-                buttons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
+        if (!videoElement || !playerMessageOverlay || !playerMessageText) {
+            console.error("Faltan elementos del reproductor en el HTML.");
+            return;
+        }
+
+        const player = new Plyr(videoElement);
+        const hls = new Hls();
+
+        function showMessage(text) {
+            player.stop();
+            hls.detachMedia();
+            videoElement.style.display = 'none';
+            playerMessageOverlay.style.display = 'flex';
+            playerMessageText.textContent = text;
+        }
         
+        function showPlayer() {
+            playerMessageOverlay.style.display = 'none';
+            videoElement.style.display = 'block';
+        }
+
+        function handleButtonClick(button) {
+            const serverName = button.dataset.serverName;
+            const sourceId = button.dataset.sourceId;
+
+            if (!serverName || !sourceId) {
+                showMessage('Error: Botón sin datos.');
+                return;
+            }
+
+            document.querySelectorAll('.source-button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            showMessage(`Resolviendo ${serverName}...`);
+            
+            const apiUrl = `/api/resolve/${serverName}/${sourceId}/`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || `Error ${response.status}`) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.m3u8_url) {
+                        showPlayer();
+                        if (Hls.isSupported()) {
+                            hls.loadSource(data.m3u8_url);
+                            hls.attachMedia(videoElement);
+                        } else {
+                            videoElement.src = data.m3u8_url;
+                        }
+                    } else {
+                        throw new Error(data.error || 'Fallo al obtener la URL.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar la fuente:', error);
+                    showMessage(error.message);
+                });
+        }
+
+        // Event listener para los clics manuales del usuario
+        container.addEventListener('click', function(event) {
+            const button = event.target.closest('.source-button');
+            if (button) {
+                handleButtonClick(button);
+            }
+        });
+
+        // Carga automática del primer botón disponible
+        const firstButton = container.querySelector('.source-button');
         if (firstButton) {
-            firstButton.click();
-        } else if (player) {
-            player.src = '';
+            console.log("Iniciando carga automática del primer servidor...");
+            handleButtonClick(firstButton); 
+        } else {
+            showMessage("No hay fuentes de vídeo disponibles.");
         }
     }
-    
+
+    // Ejecutamos la función para ambas páginas (películas y episodios)
     setupPlayer('.movie-sources');
     setupPlayer('.episode-sources');
 
@@ -89,10 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingSpinner = document.getElementById('loading-spinner');
 
     function createContentCard(item) {
-        // Determina el tipo de contenido. Si no viene, asume Película.
         const itemType = item.type || 'Película'; 
-
-        // Construye la URL de detalle correcta para Película, Serie o Anime.
         let detailUrl;
         if (item.type === 'Película') {
             detailUrl = `/pelicula/${item.id}/`;
@@ -101,8 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else { // Anime
             detailUrl = `/anime/${item.id}/`;
         }
-
-        // Lógica para el póster. Maneja rutas de TMDB y URLs completas de AniList.
         let imageHtml = `<div class="no-poster"><span>${item.title}</span></div>`;
         if (item.poster_path) {
             const imageUrl = item.poster_path.startsWith('http')
@@ -110,8 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 : `https://image.tmdb.org/t/p/w500${item.poster_path}`;
             imageHtml = `<img src="${imageUrl}" alt="${item.title}" loading="lazy" class="card-image">`;
         }
-        
-        // Genera el HTML completo de la tarjeta.
         return `
             <a href="${detailUrl}" class="content-card" data-title="${item.title}">
                 ${imageHtml}
@@ -135,9 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             fetch(url)
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-                    }
+                    if (!response.ok) { throw new Error(`Error del servidor: ${response.status} ${response.statusText}`); }
                     return response.json();
                 })
                 .then(data => {
@@ -152,67 +205,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.remove();
                     }
                 })
-                .catch(error => {
-                    console.error('Error en fetch:', error);
-                    loadMoreBtn.style.display = 'inline-block';
-                })
-                .finally(() => {
-                    if (loadingSpinner) loadingSpinner.style.display = 'none';
-                });
+                .catch(error => { console.error('Error en fetch:', error); loadMoreBtn.style.display = 'inline-block'; })
+                .finally(() => { if (loadingSpinner) loadingSpinner.style.display = 'none'; });
         });
     }
 
-
-    // =========================================================================
-    // === NUEVA LÓGICA AÑADIDA PARA EL COMPORTAMIENTO DE LOS MENÚS DESPLEGABLES ===
-    // =========================================================================
-
-    // Función para cerrar otros menús al abrir uno (comportamiento de acordeón).
-    function setupAccordion(containerSelector) {
+    // --- 6. LÓGICA PARA MENÚS DESPLEGABLES (ACORDEÓN) ---
+    function setupDropdowns(containerSelector) {
         const container = document.querySelector(containerSelector);
         if (!container) return;
 
-        const allDetails = container.querySelectorAll('.dropdown-menu');
-
-        allDetails.forEach(details => {
-            details.addEventListener('toggle', () => {
-                // Si este menú se acaba de abrir...
-                if (details.open) {
-                    // ...recorremos todos los demás menús.
-                    allDetails.forEach(otherDetails => {
-                        // Si es un menú diferente al que abrimos y está abierto, lo cerramos.
-                        if (otherDetails !== details) {
-                            otherDetails.open = false;
-                        }
-                    });
-                }
-            });
-        });
-    }
-
-    // Función para cerrar el menú automáticamente al hacer click en un botón de servidor.
-    function setupAutoClose(containerSelector) {
-        const container = document.querySelector(containerSelector);
-        if (!container) return;
-
-        // Usamos delegación de eventos en el contenedor principal.
         container.addEventListener('click', (event) => {
-            // Verificamos si el elemento clickeado es un botón de servidor.
+            const clickedSummary = event.target.closest('.dropdown-summary');
+
             if (event.target.matches('.source-button')) {
-                // Buscamos el elemento <details> padre más cercano.
                 const parentDetails = event.target.closest('.dropdown-menu');
-                if (parentDetails) {
-                    // Cerramos el menú estableciendo su propiedad 'open' a false.
-                    parentDetails.open = false;
-                }
+                if (parentDetails) { parentDetails.open = false; }
+                return;
+            }
+
+            if (clickedSummary) {
+                const parentDetails = clickedSummary.closest('.dropdown-menu');
+                container.querySelectorAll('.dropdown-menu').forEach(details => {
+                    if (details !== parentDetails) {
+                        details.open = false;
+                    }
+                });
             }
         });
     }
 
-    // Aplicamos las nuevas funciones a los contenedores de video de películas y episodios.
-    setupAccordion('.movie-sources');
-    setupAccordion('.episode-sources');
-    setupAutoClose('.movie-sources');
-    setupAutoClose('.episode-sources');
-
+    setupDropdowns('.movie-sources');
+    setupDropdowns('.episode-sources');
 });
