@@ -1,9 +1,10 @@
+// Archivo: core/static/core/js/main.js (VERSIÓN FINAL PARA ENLACES PRE-PROCESADOS)
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM cargado. Iniciando main.js para enlaces pre-procesados...");
 
     // =======================================================
-    // === 1. LÓGICA DE LA INTERFAZ PRINCIPAL (SIN CAMBIOS)
+    // === 1. LÓGICA DE LA INTERFAZ PRINCIPAL (NAVBAR, MENÚ)
     // =======================================================
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const navbarContent = document.getElementById('navbar-right-content');
@@ -13,92 +14,120 @@ document.addEventListener('DOMContentLoaded', function() {
             navbarContent.classList.toggle('open');
         });
     }
+
     const navbar = document.querySelector('.navbar');
     if (navbar) {
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) navbar.classList.add('scrolled');
-            else navbar.classList.remove('scrolled');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
         });
     }
     
     // =======================================================
-    // === 2. LÓGICA DEL REPRODUCTOR (SIMPLIFICADA)
+    // === 2. LÓGICA UNIFICADA DEL REPRODUCTOR Y MENÚS
     // =======================================================
     
     const playerAndOptions = document.querySelector('.player-and-options');
 
     if (playerAndOptions) {
+        console.log("Reproductor detectado en la página. Configurando...");
+
         const videoElement = document.getElementById('player');
         const playerMessageOverlay = document.getElementById('player-message-overlay');
         const playerMessageText = document.getElementById('player-message-text');
 
-        if (videoElement && playerMessageOverlay && playerMessageText) {
+        if (!videoElement || !playerMessageOverlay || !playerMessageText) {
+            console.error("Error crítico: Faltan elementos del reproductor en el HTML.");
+        } else {
             const player = new Plyr(videoElement);
             let hls = new Hls();
 
             function showMessage(text) {
+                console.log(`Mostrando mensaje en overlay: "${text}"`);
                 player.stop();
-                if (hls && hls.media) hls.detachMedia();
+                if (hls && hls.media) {
+                    hls.detachMedia();
+                }
                 videoElement.style.display = 'none';
                 playerMessageOverlay.style.display = 'flex';
                 playerMessageText.textContent = text;
             }
 
-            function loadVideo(m3u8Url, serverName) {
-                if (m3u8Url && m3u8Url !== 'None') {
-                    console.log(`Cargando video de ${serverName} desde: ${m3u8Url}`);
-                    
-                    // Codificamos la URL en Base64 para pasarla de forma segura a nuestro proxy
-                    const b64_url = btoa(m3u8Url); 
-                    const proxyUrl = `/proxy-stream/${b64_url}/`;
-                    
-                    console.log("URL del proxy construida:", proxyUrl);
-
-                    playerMessageOverlay.style.display = 'none';
-                    videoElement.style.display = 'block';
-                    
-                    if (Hls.isSupported()) {
-                        hls.loadSource(proxyUrl);
-                        hls.attachMedia(videoElement);
-                    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                        videoElement.src = proxyUrl;
-                    } else {
-                        showMessage("Tu navegador no soporta streaming HLS.");
-                    }
-                } else {
-                    showMessage(`La fuente para ${serverName} no está disponible o el enlace está caído.`);
-                }
-            }
-
             function handleSourceButtonClick(button) {
+                console.log("handleSourceButtonClick activado para:", button);
                 const m3u8Url = button.dataset.m3u8Url;
                 const serverName = button.dataset.serverName;
 
                 document.querySelectorAll('.source-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                
-                loadVideo(m3u8Url, serverName);
+
+                // Si la URL del M3U8 existe, la cargamos. Si no, mostramos error.
+                if (m3u8Url && m3u8Url !== 'None' && m3u8Url.trim() !== '') {
+                    console.log(`URL M3U8 encontrada para ${serverName}: ${m3u8Url}`);
+                    
+                    // --- Proxy Logic ---
+                    // En este modelo, el proxy ya no es estrictamente necesario si los enlaces
+                    // resueltos no tienen problemas de CORS. Por ahora lo mantenemos por seguridad.
+                    // Si da problemas, la primera prueba es cargar 'm3u8Url' directamente.
+                    
+                    playerMessageOverlay.style.display = 'none';
+                    videoElement.style.display = 'block';
+                    
+                    if (Hls.isSupported()) {
+                        hls.loadSource(m3u8Url); // Cargamos la URL directa
+                        hls.attachMedia(videoElement);
+                    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoElement.src = m3u8Url; // Cargamos la URL directa
+                    } else {
+                        showMessage("Tu navegador no soporta streaming HLS.");
+                    }
+                } else {
+                    console.warn(`No se encontró resolved_url para ${serverName}.`);
+                    showMessage(`La fuente para ${serverName} no está disponible o el enlace está caído.`);
+                }
             }
 
-            // Gestión de eventos centralizada
+            // === GESTIÓN DE EVENTOS CENTRALIZADA ===
             playerAndOptions.addEventListener('click', function(event) {
                 const sourceButton = event.target.closest('.source-button:not(.season-button)');
+                const dropdownSummary = event.target.closest('.dropdown-summary');
+
+                // --- Caso 1: Clic en un botón de fuente ---
                 if (sourceButton) {
                     handleSourceButtonClick(sourceButton);
                     const parentDetails = sourceButton.closest('.dropdown-menu');
-                    if (parentDetails) parentDetails.open = false;
+                    if (parentDetails) {
+                        parentDetails.open = false;
+                    }
+                    return; // Importante para no procesar más clics
+                }
+
+                // --- Caso 2: Clic para abrir/cerrar un menú ---
+                if (dropdownSummary) {
+                    const parentDetails = dropdownSummary.closest('.dropdown-menu');
+                    playerAndOptions.querySelectorAll('.dropdown-menu').forEach(details => {
+                        if (details !== parentDetails) {
+                            details.open = false;
+                        }
+                    });
                 }
             });
 
-            // Carga Automática del Primer Botón
+            // --- Carga Automática del Primer Botón ---
             const firstSourceButton = playerAndOptions.querySelector('.source-button:not(.season-button)');
             if (firstSourceButton) {
                 console.log("Iniciando carga automática del primer servidor...");
                 handleSourceButtonClick(firstSourceButton);
             } else {
                 showMessage("No hay fuentes de vídeo disponibles.");
+                console.warn("No se encontraron botones de fuente para la carga automática.");
             }
         }
+    } else {
+        console.log("No se detectó ningún reproductor en esta página.");
     }
     
     // =======================================================
