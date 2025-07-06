@@ -140,16 +140,20 @@ USE_TZ = True
 # Al final de settings.py
 
 STATIC_URL = '/static/'
-
-# Carpetas donde Django buscará tus archivos en DESARROLLO
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-# Carpeta ÚNICA donde se copiarán TODOS los estáticos para PRODUCCIÓN
-# Debe coincidir con el 'dest' en vercel.json (sin la barra inicial)
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
+# Esta es la carpeta donde `collectstatic` pondrá todos los archivos.
+# Usaremos 'staticfiles' como nombre estándar.
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Storage para que WhiteNoise comprima y cachee los archivos (sigue siendo una buena práctica)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# --- WhiteNoise Configuration ---
+# Esta es la configuración recomendada para producción detrás de un proxy como Vercel.
+# Se encarga de la compresión y el cacheo de forma eficiente.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Añade esta línea si no la tienes. Ayuda a WhiteNoise en entornos de solo lectura.
+WHITENOISE_USE_FINDERS = True
+
 
 
 # Default primary key field type

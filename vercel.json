@@ -9,20 +9,6 @@
         "runtime": "python3.12",
         "buildCommand": "python3.12 manage.py collectstatic --noinput"
       }
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/staticfiles/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "mi_cuevana/wsgi.py"
     }
   ]
 }
