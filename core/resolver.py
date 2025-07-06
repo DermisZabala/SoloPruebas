@@ -1,111 +1,75 @@
-# Archivo: core/resolver.py (VERSIÓN OPTIMIZADA PARA TIMEOUTS EN VERCEL)
+# Archivo: core/resolver.py (VERSIÓN FINAL CON SCRAPERAPI)
 
 import os
-import time
-import json
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options
+import re
+import requests
 
-if 'VERCEL' not in os.environ:
-    from webdriver_manager.chrome import ChromeDriverManager
-
-def get_m3u8_link(iframe_url: str, is_filemoon: bool = False) -> str | None:
-    print(f"\n--- [SELENIUM-RESOLVER] Iniciando para: {iframe_url}")
+def resolve_with_scraperapi(iframe_url: str) -> str | None:
+    """
+    Usa la API de ScraperAPI para hacer scraping, renderizando JavaScript.
+    Esta es nuestra única y principal herramienta en producción.
+    """
+    print(f"--- [SCRAPERAPI] Resolviendo: {iframe_url}")
+    api_key = os.environ.get('SCRAPERAPI_KEY')
+    if not api_key:
+        print("--- [SCRAPERAPI] ERROR: La variable de entorno SCRAPERAPI_KEY no está definida.")
+        return None
     
-    # Opciones de Chrome
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1280x720") # Tamaño más pequeño
-    chrome_options.add_argument("--single-process")
-    chrome_options.add_argument("--disable-dev-tools")
-    chrome_options.add_argument("--no-zygote")
-    
-    logging_prefs = {'performance': 'ALL'}
-    chrome_options.set_capability('goog:loggingPrefs', logging_prefs)
-    
-    driver = None
-    m3u8_url = None
+    # Parámetros para la petición a ScraperAPI
+    # Le pedimos la URL y que ejecute el JavaScript de la página ('render': 'true')
+    payload = {'api_key': api_key, 'url': iframe_url, 'render': 'true'}
     
     try:
-        # --- Lógica de Entorno: Vercel vs. Local ---
-        if 'VERCEL' in os.environ:
-            print("[SELENIUM-RESOLVER] Entorno Vercel detectado.")
-            chrome_options.binary_location = "/var/task/node_modules/chrome-aws-lambda/bin/chromium"
-            service = ChromeService(executable_path="/var/task/node_modules/chrome-aws-lambda/bin/chromedriver")
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+        response = requests.get('http://api.scraperapi.com', params=payload, timeout=60)
+        response.raise_for_status()
+        
+        # === ¡CAMBIO CLAVE AQUÍ! ===
+        # Esta nueva expresión regular busca cualquier URL M3U8, sin importar el contexto.
+        # Es mucho más flexible y robusta.
+        m3u8_match = re.search(r'(https?:\/\/[^"\']+\.m3u8[^"\']*)', response.text)
+        
+        if m3u8_match:
+            m3u8_url = m3u8_match.group(1)
+            print(f"--- [SCRAPERAPI] ¡ÉXITO! M3U8 encontrado con Regex flexible: {m3u8_url[:100]}...")
+            return m3u8_url
         else:
-            print("[SELENIUM-RESOLVER] Entorno Local detectado.")
-            driver_manager = ChromeDriverManager().install()
-            service = ChromeService(executable_path=driver_manager)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            print("--- [SCRAPERAPI] FALLO: No se encontró la URL .m3u8 en la respuesta con Regex flexible.")
+            # Como fallback, vamos a imprimir un trozo de la respuesta para depurar
+            print("--- [SCRAPERAPI] Inicio de la respuesta HTML para depuración:")
+            print(response.text[:2000]) # Imprime los primeros 2000 caracteres
+            print("--- [SCRAPERAPI] Fin de la respuesta HTML.")
+            return None
+    except requests.RequestException as e:
+        print(f"--- [SCRAPERAPI] ERROR en la petición a la API: {e}")
+        return None
 
-        print("[SELENIUM-RESOLVER] Driver de Chrome iniciado con éxito.")
-        
-        # === AJUSTE CLAVE DE TIMEOUT ===
-        # Aumentamos el timeout de carga de la página. Si no carga en 20s, falla.
-        driver.set_page_load_timeout(20) 
-        
-        print(f"[SELENIUM-RESOLVER] Navegando a {iframe_url} (timeout de 20s)...")
-        driver.get(iframe_url)
-        
-        # Reducimos la espera estática, confiamos más en las esperas explícitas.
-        time.sleep(2) 
-        
-        try:
-            if is_filemoon:
-                # Damos más tiempo para encontrar el iframe en Filemoon
-                wait = WebDriverWait(driver, 20) 
-                player_iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[src*='bkg']")))
-                if player_iframe:
-                    iframe_src = player_iframe.get_attribute('src')
-                    driver.get(iframe_src)
-                    time.sleep(3)
-            
-            # Aumentamos la espera para el botón de play
-            wait = WebDriverWait(driver, 20)
-            play_button = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.jw-video.jw-reset, .vjs-big-play-button, video")))
-            if play_button:
-                driver.execute_script("arguments[0].click();", play_button)
-                time.sleep(3) # Espera post-clic
-        except Exception as e:
-            print(f"[SELENIUM-RESOLVER] ADVERTENCIA: No se pudo hacer clic o encontrar iframe, continuando... ({e})")
-        
-        # Damos una última oportunidad de que las peticiones se registren
-        time.sleep(2) 
-        
-        logs = driver.get_log('performance')
-        found_urls = [log.get('params', {}).get('request', {}).get('url', '') for entry in logs for log in [json.loads(entry['message'])['message']] if 'Network.requestWillBeSent' in log.get('method', '') and '.m3u8' in log.get('params', {}).get('request', {}).get('url', '')]
-        if found_urls:
-            master_m3u8 = next((url for url in found_urls if 'seg' not in url.lower() and 'chunk' not in url.lower()), None)
-            m3u8_url = master_m3u8 if master_m3u8 else found_urls[-1]
-            print(f"--- [SELENIUM-RESOLVER] ¡ÉXITO! M3U8 encontrado: {m3u8_url[:100]}...")
-        else:
-            print("--- [SELENIUM-RESOLVER] FALLO: No se encontró URL .m3u8.")
+# --- FUNCIONES DE ENTRADA QUE USAN EL MÉTODO CORRECTO ---
 
-    except Exception as e:
-        print(f"--- [SELENIUM-RESOLVER] ERROR CRÍTICO: {type(e).__name__}: {e}")
-    finally:
-        if driver:
-            driver.quit()
-    
-    return m3u8_url
-
-# ... (El resto del archivo se queda igual) ...
 def get_m3u8_from_streamwish(source_id):
-    return get_m3u8_link(f"https://streamwish.to/e/{source_id}")
+    return resolve_with_scraperapi(f"https://streamwish.to/e/{source_id}")
 
 def get_m3u8_from_filemoon(source_id):
-    return get_m3u8_link(f"https://filemoon.sx/e/{source_id}", is_filemoon=True)
+    # La página de Filemoon principal no tiene el video, está en un iframe.
+    # Primero obtenemos esa URL.
+    try:
+        main_page_url = f"https://filemoon.sx/e/{source_id}"
+        api_key = os.environ.get('SCRAPERAPI_KEY')
+        if not api_key: return None
+
+        # Usamos ScraperAPI para obtener la página principal y encontrar el iframe
+        payload = {'api_key': api_key, 'url': main_page_url}
+        response = requests.get('http://api.scraperapi.com', params=payload)
+        iframe_match = re.search(r'<iframe src="([^"]+)"', response.text)
+        if iframe_match:
+            iframe_url = iframe_match.group(1)
+            # Ahora hacemos scraping a la URL del iframe con renderizado
+            return resolve_with_scraperapi(iframe_url)
+    except Exception as e:
+        print(f"--- [FILEMOON-IFRAME] Error: {e}")
+    return None
     
 def get_m3u8_from_vidhide(source_id):
-    return get_m3u8_link(f"https://filelions.to/v/{source_id}")
+    return resolve_with_scraperapi(f"https://filelions.to/v/{source_id}")
 
 def get_m3u8_from_voesx(source_id):
-    return get_m3u8_link(f"https://voe.sx/e/{source_id}")
+    return resolve_with_scraperapi(f"https://voe.sx/e/{source_id}")
