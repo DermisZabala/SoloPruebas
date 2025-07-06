@@ -5,22 +5,16 @@
       "src": "mi_cuevana/wsgi.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.12"
-      }
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
+        "maxLambdaSize": "25mb",
+        "runtime": "python3.12",
+        "buildCommand": "python3.12 manage.py collectstatic --noinput"
       }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "dest": "/staticfiles/$1"
     },
     {
       "src": "/(.*)",

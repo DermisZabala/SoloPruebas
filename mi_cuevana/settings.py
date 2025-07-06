@@ -137,12 +137,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+# Al final de settings.py
+
 STATIC_URL = '/static/'
 
+# Carpetas donde Django buscará tus archivos en DESARROLLO
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-# Configuración para que WhiteNoise encuentre los archivos estáticos en producción
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Carpeta ÚNICA donde se copiarán TODOS los estáticos para PRODUCCIÓN
+# Debe coincidir con el 'dest' en vercel.json (sin la barra inicial)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
+
+# Storage para que WhiteNoise comprima y cachee los archivos (sigue siendo una buena práctica)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
