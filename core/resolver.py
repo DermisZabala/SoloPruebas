@@ -20,20 +20,24 @@ def resolve_with_scraperapi(iframe_url: str) -> str | None:
     payload = {'api_key': api_key, 'url': iframe_url, 'render': 'true'}
     
     try:
-        # Hacemos la petición a través del endpoint de la API de ScraperAPI
-        # Le damos un timeout generoso de 60 segundos
         response = requests.get('http://api.scraperapi.com', params=payload, timeout=60)
-        response.raise_for_status() # Lanza un error si la respuesta no es 200 OK
+        response.raise_for_status()
         
-        # Buscamos la URL del M3U8 en el HTML que nos devuelve ScraperAPI
-        # Este patrón busca URLs que terminen en .m3u8 dentro de comillas
-        m3u8_match = re.search(r'file:"(https?:\/\/[^"]+\.m3u8[^"]*)"', response.text)
+        # === ¡CAMBIO CLAVE AQUÍ! ===
+        # Esta nueva expresión regular busca cualquier URL M3U8, sin importar el contexto.
+        # Es mucho más flexible y robusta.
+        m3u8_match = re.search(r'(https?:\/\/[^"\']+\.m3u8[^"\']*)', response.text)
+        
         if m3u8_match:
             m3u8_url = m3u8_match.group(1)
-            print(f"--- [SCRAPERAPI] ¡ÉXITO! M3U8 encontrado: {m3u8_url[:100]}...")
+            print(f"--- [SCRAPERAPI] ¡ÉXITO! M3U8 encontrado con Regex flexible: {m3u8_url[:100]}...")
             return m3u8_url
         else:
-            print("--- [SCRAPERAPI] FALLO: No se encontró la URL .m3u8 en la respuesta.")
+            print("--- [SCRAPERAPI] FALLO: No se encontró la URL .m3u8 en la respuesta con Regex flexible.")
+            # Como fallback, vamos a imprimir un trozo de la respuesta para depurar
+            print("--- [SCRAPERAPI] Inicio de la respuesta HTML para depuración:")
+            print(response.text[:2000]) # Imprime los primeros 2000 caracteres
+            print("--- [SCRAPERAPI] Fin de la respuesta HTML.")
             return None
     except requests.RequestException as e:
         print(f"--- [SCRAPERAPI] ERROR en la petición a la API: {e}")
