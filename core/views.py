@@ -250,7 +250,7 @@ def stream_proxy_view(request, b64_url):
         return HttpResponse(f"Error en el proxy: {e}", status=500)
 
 # -----------------------------------------------------------------
-# 5. ¡NUEVA API DE RESOLUCIÓN DE ENLACES!
+# 5. API DE RESOLUCIÓN DE ENLACES
 # -----------------------------------------------------------------
 RESOLVER_MAP = {
     'streamwish': resolver.get_m3u8_from_streamwish,
@@ -262,9 +262,6 @@ RESOLVER_MAP = {
 
 @csrf_exempt
 def resolve_source_api(request, server_name, source_id):
-    """
-    API endpoint que resuelve un enlace de embed en tiempo real usando ScraperAPI.
-    """
     print(f"--- [API RESOLVER] Petición para: {server_name} con ID: {source_id} ---")
     server_name_lower = server_name.lower()
     resolver_function = RESOLVER_MAP.get(server_name_lower)
@@ -276,7 +273,7 @@ def resolve_source_api(request, server_name, source_id):
     m3u8_url = resolver_function(source_id)
     
     if m3u8_url:
-        print(f"--- [API RESOLVER] Éxito. M3U8 encontrado: {m3u8_url[:100]}...")
+        print(f"--- [API RESOLVER] Éxito. M3U8 encontrado.")
         return JsonResponse({'success': True, 'url': m3u8_url})
     else:
         print(f"--- [API RESOLVER] Fallo. No se pudo resolver la fuente.")
