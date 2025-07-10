@@ -2,6 +2,8 @@
 {% extends 'core/_base.html' %}
 {% load static %}
 {% load seo_tags %}
+{% load source_filters %}
+
 
 {% block content %}
 
@@ -130,7 +132,7 @@
                                     {% for source in sources %}
                                         <button class="source-button" 
                                                 data-server-name="{{ source.server_name }}"
-                                                data-m3u8-url="{% if source.resolved_url %}{{ source.resolved_url }}{% endif %}">
+                                                data-source-id="{{ source.embed_url|get_id_from_url }}">
                                             {{ source.server_name }}
                                         </button>
                                     {% endfor %}
